@@ -137,18 +137,18 @@ class Player(pygame.sprite.Sprite):
         ##this will help to keep the sprite index in the range of the sprites list
         sprite_index = (self.animation_count//self.ANIMATION_DELAY) % len(sprites)  
 
-        self.sprites = sprites[sprite_index]  ##get the sprite from the sprites list
+        self.sprite = sprites[sprite_index]  ##get the sprite from the sprites list
 
         self.update()
 
         self.animation_count += 1
 
     def update(self):
-        self.rect = self.sprites.get_rect(topleft=(self.rect.x,self.rect.y)) #define the cordinate of the sprite
-        self.mask = pygame.mask.from_surface(self.sprites) #help to make pixel perfect collision. this will bound the sprites to pixel
+        self.rect = self.sprite.get_rect(topleft=(self.rect.x,self.rect.y)) #define the cordinate of the sprite
+        self.mask = pygame.mask.from_surface(self.sprite) #help to make pixel perfect collision. this will bound the sprites to pixel
 
     def draw(self,win,offset): 
-        win.blit(self.sprites,(self.rect.x - offset,self.rect.y))
+        win.blit(self.sprite,(self.rect.x - offset,self.rect.y))
 
 
 class Object(pygame.sprite.Sprite):
@@ -213,19 +213,33 @@ def handle_vertical_collision(player,objects,dy):
                 player.head()
             collided_objects.append(obj)
 
-    return collided_objects        
+    return collided_objects 
+
+def collide(player,objects,dx):
+    collide_object = None
+    player.move(dx,0)
+    player.update()
+    for obj in objects:
+        if pygame.sprite.collide_mask(player,obj):
+            collide_object = obj
+            break
+    player.move(-dx,0)
+    player.update()
+    return collide_object           
                 
 def handle_move(player,objects):
 
     player.x_vel = 0  #when we once press a key, it will don't stop even we release the key.
                       #Becouse once we updata the x_vel variable player class i will last forever.
     
+    collide_left = collide(player,objects,-PLAYER_VEL)
+    collide_right = collide(player,objects,PLAYER_VEL)
 
 
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
+    if keys[pygame.K_LEFT] and not collide_left:
         player.move_left(PLAYER_VEL)
-    if keys[pygame.K_RIGHT]:
+    if keys[pygame.K_RIGHT] and not collide_right:
         player.move_right(PLAYER_VEL)
 
     handle_vertical_collision(player,objects,player.y_vel)    
