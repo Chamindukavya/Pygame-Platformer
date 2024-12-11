@@ -57,6 +57,7 @@ def get_block(size):
     return pygame.transform.scale2x(surface) ##scale the block to 2x
 
 
+
 class Player(pygame.sprite.Sprite):
     COLOR = (255,0,0)
     GRAVITY = 1
@@ -174,6 +175,40 @@ class Block(Object):
         self.image.blit(block, (0, 0))
         self.mask = pygame.mask.from_surface(self.image)
 
+
+class Fire(Object):
+    ANIMATION_DELAY = 3
+
+    def __init__(self, x, y, width, height):
+        super().__init__(x, y, width, height, "fire")
+        self.fire = load_sprite_sheets("Traps", "Fire", width, height)
+        self.image = self.fire["off"][0]
+        self.mask = pygame.mask.from_surface(self.image)
+        self.animation_count = 0
+        self.animation_name = "off"
+
+    def on(self):
+        self.animation_name = "on"
+
+    def off(self):
+        self.animation_name = "off"
+
+    def loop(self):
+        sprites = self.fire[self.animation_name]
+        sprite_index = (self.animation_count //
+                        self.ANIMATION_DELAY) % len(sprites)
+        self.image = sprites[sprite_index]
+        self.animation_count += 1
+
+        self.rect = self.image.get_rect(topleft=(self.rect.x, self.rect.y))
+        self.mask = pygame.mask.from_surface(self.image)
+
+        if self.animation_count // self.ANIMATION_DELAY > len(sprites):
+            self.animation_count = 0
+
+
+
+
 def get_background(name):
     image =  pygame.image.load(join("Assets","Python-Platformer-main","assets","Background",name))
     _, _, width, height = image.get_rect()
@@ -197,7 +232,10 @@ def draw_game(window, image, tiles,player,objects,offset):
     for obj in objects:
         obj.draw(window,offset)
 
+    
+
     player.draw(window,offset)
+    
     pygame.display.update()    ##when there is a change in the display, it will update the displays
 
 def handle_vertical_collision(player,objects,dy):
@@ -232,8 +270,8 @@ def handle_move(player,objects):
     player.x_vel = 0  #when we once press a key, it will don't stop even we release the key.
                       #Becouse once we updata the x_vel variable player class i will last forever.
     
-    collide_left = collide(player,objects,-PLAYER_VEL)
-    collide_right = collide(player,objects,PLAYER_VEL)
+    collide_left = collide(player,objects,-PLAYER_VEL*2) #look for a collision in the left side of the player. detect before 2*player_vel distance
+    collide_right = collide(player,objects,PLAYER_VEL*2) #this will create a distance between the player and the horizontal object
 
 
     keys = pygame.key.get_pressed()
@@ -262,6 +300,12 @@ def main(window):
 
     blocks = [*floor, Block(0, HEIGHT-(block_size*4),block_size),Block(0, HEIGHT-(block_size*2),block_size)]
 
+    fire = fire(100,HEIGHT-block_size-64,16,32) 
+    fire.on() 
+   
+    objects = [*blocks,fire]
+ 
+
     # main loop
     run = True
     while run:
@@ -277,7 +321,7 @@ def main(window):
 
         player.loop(FPS)   
         handle_move(player,blocks)
-        draw_game(window, tiles, image,player,blocks,offset)
+        draw_game(window, tiles, image,player,objects,offset)
 
         ##scrolling the camera
         if (((player.rect.right-offset >= WIDTH - scroll_area_width) and player.x_vel > 0) or ((player.rect.left - offset <= scroll_area_width )and player.x_vel < 0)):
